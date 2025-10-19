@@ -1,0 +1,13 @@
+{
+  "itemGroup.mgtlogin": "Example Mod Tab",
+  "block.mgtlogin.example_block": "Example Block",
+  "item.mgtlogin.example_item": "Example Item",
+
+  "mgtlogin.configuration.title": "MGT-Login Configs",
+  "mgtlogin.configuration.section.mgtlogin.common.toml": "MGT-Login Configs",
+  "mgtlogin.configuration.section.mgtlogin.common.toml.title": "MGT-Login Configs",
+  "mgtlogin.configuration.items": "Item List",
+  "mgtlogin.configuration.logDirtBlock": "Log Dirt Block",
+  "mgtlogin.configuration.magicNumberIntroduction": "Magic Number Text",
+  "mgtlogin.configuration.magicNumber": "Magic Number"
+}
