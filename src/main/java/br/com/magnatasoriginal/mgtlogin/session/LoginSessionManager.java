@@ -1,6 +1,9 @@
 package br.com.magnatasoriginal.mgtlogin.session;
 
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.*;
 
@@ -9,15 +12,38 @@ public class LoginSessionManager {
     private static final Map<UUID, Boolean> pendingPremiumFlag = new HashMap<>();
     private static final Map<UUID, UUID> overriddenUUIDs = new HashMap<>();
 
-    // Aplica limbo (exemplo: congelar, ocultar, etc.)
+    // Aplica limbo total
     public static void applyLimbo(ServerPlayer player) {
+        // Invulnerável e invisível
         player.setInvulnerable(true);
         player.setInvisible(true);
         player.setNoGravity(true);
+
+        // Remove habilidades de construção
         player.getAbilities().mayBuild = false;
-        player.getAbilities().flying = true;
-        player.getAbilities().mayfly = true;
+        player.getAbilities().instabuild = false;
         player.onUpdateAbilities();
+
+        // Zera atributos de movimento
+        var moveAttr = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (moveAttr != null) {
+            moveAttr.setBaseValue(0.0D);
+        }
+
+        var flyAttr = player.getAttribute(Attributes.FLYING_SPEED);
+        if (flyAttr != null) {
+            flyAttr.setBaseValue(0.0D);
+        }
+
+
+        // Aplica cegueira infinita
+        player.addEffect(new MobEffectInstance(
+                MobEffects.BLINDNESS,
+                Integer.MAX_VALUE,
+                1,
+                false, // ambient
+                false  // showParticles
+        ));
     }
 
     // Libera do limbo após autenticação
@@ -25,10 +51,25 @@ public class LoginSessionManager {
         player.setInvulnerable(false);
         player.setInvisible(false);
         player.setNoGravity(false);
+
+        // Restaura habilidades padrão
         player.getAbilities().mayBuild = true;
-        player.getAbilities().flying = false;
-        player.getAbilities().mayfly = false;
+        player.getAbilities().instabuild = false;
         player.onUpdateAbilities();
+
+        // Restaura atributos de movimento
+        var moveAttr = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (moveAttr != null) {
+            moveAttr.setBaseValue(0.1D); // valor vanilla
+        }
+
+        var flyAttr = player.getAttribute(Attributes.FLYING_SPEED);
+        if (flyAttr != null) {
+            flyAttr.setBaseValue(0.05D); // valor vanilla
+        }
+
+        // Remove cegueira
+        player.removeEffect(MobEffects.BLINDNESS);
     }
 
     // Marca como autenticado
@@ -56,6 +97,11 @@ public class LoginSessionManager {
         return pendingPremiumFlag.getOrDefault(player.getUUID(), false);
     }
 
+    // Já escolheu ORIGINAL ou PIRATA?
+    public static boolean hasChosenAccountType(ServerPlayer player) {
+        return pendingPremiumFlag.containsKey(player.getUUID());
+    }
+
     public static UUID getEffectiveUUID(ServerPlayer player) {
         return overriddenUUIDs.getOrDefault(player.getUUID(), player.getUUID());
     }
@@ -65,5 +111,8 @@ public class LoginSessionManager {
         authenticatedPlayers.remove(uuid);
         pendingPremiumFlag.remove(uuid);
         overriddenUUIDs.remove(uuid);
+
+        // Garante que efeitos sejam limpos
+        player.removeEffect(MobEffects.BLINDNESS);
     }
 }

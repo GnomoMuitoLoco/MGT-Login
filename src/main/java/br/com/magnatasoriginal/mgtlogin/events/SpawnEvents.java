@@ -56,6 +56,21 @@ public class SpawnEvents {
         if (point != null) teleport(player, point);
     }
 
+    @SubscribeEvent
+    public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+
+        // Limpa sessão antiga
+        LoginSessionManager.clearSession(player);
+
+        // Coloca no limbo
+        LoginSessionManager.applyLimbo(player);
+
+        // Mensagem inicial
+        player.sendSystemMessage(Component.literal("§eSua conta é ORIGINAL ou PIRATA?"));
+        player.sendSystemMessage(Component.literal("§7Responda no chat com /original ou /pirata"));
+    }
+
     private void teleport(ServerPlayer player, SpawnPoint point) {
         if (player.getServer() == null) return;
 

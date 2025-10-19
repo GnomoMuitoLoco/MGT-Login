@@ -33,6 +33,10 @@ public class AccountStorage {
         return accounts.containsKey(uuid);
     }
 
+    public static AccountData getAccount(UUID uuid) {
+        return accounts.get(uuid);
+    }
+
     /**
      * Registra uma nova conta.
      * @param player Jogador
