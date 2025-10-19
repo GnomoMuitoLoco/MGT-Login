@@ -1,35 +1,67 @@
 package br.com.magnatasoriginal.mgtlogin;
 
+import br.com.magnatasoriginal.mgtlogin.commands.*;
 import br.com.magnatasoriginal.mgtlogin.config.LoginConfig;
-import br.com.magnatasoriginal.mgtlogin.commands.RegisterCommand;
-import br.com.magnatasoriginal.mgtlogin.commands.LoginCommand;
-import br.com.magnatasoriginal.mgtlogin.commands.ChangePasswordCommand;
-import br.com.magnatasoriginal.mgtlogin.commands.SetSpawnCommand;
-import br.com.magnatasoriginal.mgtlogin.events.LoginEventHandler;
+import br.com.magnatasoriginal.mgtlogin.data.AccountStorage;
+import br.com.magnatasoriginal.mgtlogin.data.SpawnStorage;
+import br.com.magnatasoriginal.mgtlogin.events.SpawnEvents;
+import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.commands.CommandSourceStack;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.fml.common.Mod;
+
+import java.io.File;
+import java.nio.file.Path;
 
 @Mod(MGTLogin.MODID)
 public class MGTLogin {
+
     public static final String MODID = "mgtlogin";
 
-    public MGTLogin() {
-        IEventBus modBus = NeoForge.MOD_BUS;
+    public MGTLogin(IEventBus modBus) {
+        // 1) Registro da configuração (✅ correto no NeoForge)
+        ModLoadingContext.get().getActiveContainer().registerConfig(ModConfig.Type.COMMON, LoginConfig.SPEC);
 
-        // Registra configuração
-        LoginConfig.register();
+        // 2) Setup de inicialização comum
+        modBus.addListener(this::commonSetup);
 
-        // Registra eventos do lado do servidor
-        NeoForge.EVENT_BUS.register(new LoginEventHandler());
+        // 3) Registro de eventos de jogo (runtime)
+        NeoForge.EVENT_BUS.register(new SpawnEvents());
+
+        // 4) Registro de comandos
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
     }
 
+    private void commonSetup(final FMLCommonSetupEvent event) {
+        File configDir = new File("config", MODID);
+        if (!configDir.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            configDir.mkdirs();
+        }
+
+        // Inicializa persistência de spawns
+        SpawnStorage.init(configDir);
+
+        // Inicializa persistência de contas
+        AccountStorage.init(Path.of(configDir.getAbsolutePath(), "accounts.json"));
+
+        System.out.println("[MGT-Login] Inicialização concluída.");
+    }
+
     private void onRegisterCommands(RegisterCommandsEvent event) {
-        RegisterCommand.register(event.getDispatcher());
-        LoginCommand.register(event.getDispatcher());
-        ChangePasswordCommand.register(event.getDispatcher());
-        SetSpawnCommand.register(event.getDispatcher());
+        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+
+        LoginCommand.register(dispatcher);
+        RegisterCommand.register(dispatcher);
+        ChangePasswordCommand.register(dispatcher);
+        OriginalCommand.register(dispatcher);
+        PirataCommand.register(dispatcher);
+        SetSpawnCommand.register(dispatcher);
+        SpawnCommand.register(dispatcher);
     }
 }

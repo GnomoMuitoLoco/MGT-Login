@@ -15,6 +15,15 @@ last-location = true
 # Teleportar para o spawn ao morrer
 teleport-on-death = true
 
+# Teleportar para o spawn da primeira vez que o jogador entra
+teleport-on-first-join = true
+
+# Teleportar para o spawn ao logar
+teleport-on-login = true
+
+# Permitir /spawn para teleportar ao spawn padrão
+teleport-on-command = true
+
 [join]
 # Limpar o chat ao entrar
 clearchatonjoin = true

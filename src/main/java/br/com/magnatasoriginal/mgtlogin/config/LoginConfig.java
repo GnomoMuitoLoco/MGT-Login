@@ -1,31 +1,33 @@
 package br.com.magnatasoriginal.mgtlogin.config;
 
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.ModLoadingContext;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ConfigValue;
-import net.neoforged.fml.config.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 public class LoginConfig {
-    public static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    public static final ModConfigSpec SPEC;
 
-    public static final ConfigValue<String> uuidType;
-    public static final ConfigValue<Boolean> safeLocation;
-    public static final ConfigValue<Boolean> lastLocation;
-    public static final ConfigValue<Boolean> teleportOnDeath;
+    // Geral
+    public static final ModConfigSpec.ConfigValue<String> uuidType;
+    public static final ModConfigSpec.IntValue sessionTimeout;
 
-    public static final ConfigValue<Boolean> clearChatOnJoin;
-    public static final ConfigValue<Boolean> removeJoinMessage;
+    // Teleport
+    public static final ModConfigSpec.BooleanValue safeLocation;
+    public static final ModConfigSpec.BooleanValue lastLocation;
+    public static final ModConfigSpec.BooleanValue teleportOnDeath;
+    public static final ModConfigSpec.BooleanValue teleportOnFirstJoin;
+    public static final ModConfigSpec.BooleanValue teleportOnLogin;
+    public static final ModConfigSpec.BooleanValue teleportOnCommand;
 
-    public static final ConfigValue<Boolean> uiTitleBar;
-    public static final ConfigValue<Boolean> uiActionBar;
-    public static final ConfigValue<Boolean> uiActionBarCounter;
-    public static final ConfigValue<Boolean> uiSounds;
-    public static final ConfigValue<Boolean> uiChatComponent;
+    // Entrada
+    public static final ModConfigSpec.BooleanValue clearChatOnJoin;
+    public static final ModConfigSpec.BooleanValue removeJoinMessage;
 
-    public static final ConfigValue<Integer> sessionTimeout;
+    // UI
+    public static final ModConfigSpec.BooleanValue uiTitleBar;
+    public static final ModConfigSpec.BooleanValue uiActionBar;
+    public static final ModConfigSpec.BooleanValue uiActionBarCounter;
+    public static final ModConfigSpec.BooleanValue uiSounds;
+    public static final ModConfigSpec.BooleanValue uiChatComponent;
 
     static {
         BUILDER.comment("Configurações gerais do MGT-Login").push("geral");
@@ -34,7 +36,7 @@ public class LoginConfig {
                 .define("unique-id-type", "REAL");
 
         sessionTimeout = BUILDER.comment("Tempo de sessão em minutos (autologin por IP)")
-                .define("session-timeout", 5);
+                .defineInRange("session-timeout", 5, 1, 1440);
 
         BUILDER.pop();
 
@@ -48,6 +50,15 @@ public class LoginConfig {
 
         teleportOnDeath = BUILDER.comment("Teleportar para o spawn ao morrer")
                 .define("teleport-on-death", true);
+
+        teleportOnFirstJoin = BUILDER.comment("Teleportar para o spawn da primeira vez que o jogador entra")
+                .define("teleport-on-first-join", true);
+
+        teleportOnLogin = BUILDER.comment("Teleportar para o spawn ao logar")
+                .define("teleport-on-login", true);
+
+        teleportOnCommand = BUILDER.comment("Permitir /spawn para teleportar ao spawn padrão")
+                .define("teleport-on-command", true);
 
         BUILDER.pop();
 
@@ -81,9 +92,5 @@ public class LoginConfig {
         BUILDER.pop();
 
         SPEC = BUILDER.build();
-    }
-
-    public static void register() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, "mgtlogin-common.toml");
     }
 }
