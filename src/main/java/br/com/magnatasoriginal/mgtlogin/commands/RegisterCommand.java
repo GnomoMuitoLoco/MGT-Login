@@ -1,5 +1,8 @@
 package br.com.magnatasoriginal.mgtlogin.commands;
 
+import br.com.magnatasoriginal.mgtlogin.data.AccountStorage;
+import br.com.magnatasoriginal.mgtlogin.session.LoginSessionManager;
+import br.com.magnatasoriginal.mgtlogin.util.PasswordUtil;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
@@ -12,6 +15,8 @@ public class RegisterCommand {
 
     private static final SimpleCommandExceptionType PASSWORD_MISMATCH =
             new SimpleCommandExceptionType(Component.literal("§cAs senhas não coincidem."));
+    private static final SimpleCommandExceptionType ALREADY_REGISTERED =
+            new SimpleCommandExceptionType(Component.literal("§cVocê já possui uma conta registrada."));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("register")
@@ -26,10 +31,27 @@ public class RegisterCommand {
                                         throw PASSWORD_MISMATCH.create();
                                     }
 
-                                    // Aqui você pode adicionar verificação se o jogador já está registrado
-                                    // E salvar a senha com hash (ex: PasswordUtil.hash(senha))
+                                    // Verifica se já existe conta
+                                    if (AccountStorage.isRegistered(LoginSessionManager.getEffectiveUUID(player))) {
+                                        throw ALREADY_REGISTERED.create();
+                                    }
 
+                                    // Gera hash da senha
+                                    String hash = PasswordUtil.hashPassword(senha);
+
+                                    // Descobre se o jogador marcou como premium ou pirata
+                                    boolean premium = LoginSessionManager.isMarkedPremium(player);
+
+                                    // Registra a conta
+                                    boolean ok = AccountStorage.register(player, hash, premium);
+                                    if (!ok) {
+                                        throw ALREADY_REGISTERED.create();
+                                    }
+
+                                    // Marca como autenticado e libera do limbo
+                                    LoginSessionManager.markAsAuthenticated(player);
                                     player.sendSystemMessage(Component.literal("§aConta registrada com sucesso!"));
+
                                     return 1;
                                 })
                         )
