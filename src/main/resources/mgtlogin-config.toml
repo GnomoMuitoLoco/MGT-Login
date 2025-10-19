@@ -1,0 +1,39 @@
+[geral]
+# Tipo de UUID: REAL, RANDOM ou OFFLINE
+unique-id-type = "REAL"
+
+# Tempo de sessão em minutos (autologin por IP)
+session-timeout = 5
+
+[teleport]
+# Teleportar para local seguro ao entrar
+safe-location = true
+
+# Teleportar para última localização ao sair
+last-location = true
+
+# Teleportar para o spawn ao morrer
+teleport-on-death = true
+
+[join]
+# Limpar o chat ao entrar
+clearchatonjoin = true
+
+# Remover mensagem de entrada
+removejoinmessage = true
+
+[ui]
+# Exibir título na tela
+title-bar = true
+
+# Exibir barra de ação
+action-bar = true
+
+# Exibir contador na barra de ação
+actionbar-counter = true
+
+# Ativar sons
+sounds = true
+
+# Usar componentes de chat
+chat-component = true
