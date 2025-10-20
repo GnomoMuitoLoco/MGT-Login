@@ -35,11 +35,15 @@ public class SpawnEvents {
             player.getPersistentData().putBoolean("mgtlogin_firstJoin", true);
 
             // 🔹 Mostra se é Original ou Pirata
-            if (LoginSessionManager.isMarkedPremium(player)) {
-                player.sendSystemMessage(Component.literal("§aConta marcada como ORIGINAL (premium)."));
-            } else {
-                player.sendSystemMessage(Component.literal("§cConta marcada como PIRATA."));
+            // 🔹 Só mostra se já escolheu
+            if (LoginSessionManager.hasChosenAccountType(player)) {
+                if (LoginSessionManager.isMarkedPremium(player)) {
+                    player.sendSystemMessage(Component.literal("§aConta marcada como ORIGINAL (premium)."));
+                } else {
+                    player.sendSystemMessage(Component.literal("§cConta marcada como PIRATA."));
+                }
             }
+
 
             // Teleporta se houver spawn configurado
             SpawnPoint point = SpawnStorage.getSpawn("firstjoin");
@@ -63,13 +67,24 @@ public class SpawnEvents {
         // Limpa sessão antiga
         LoginSessionManager.clearSession(player);
 
-        // Coloca no limbo
+        // 🔹 Verifica se pode auto‑logar (mesmo nick + mesmo IP)
+        if (br.com.magnatasoriginal.mgtlogin.data.AccountStorage.canAutoLogin(player)) {
+            // Marca como autenticado e libera do limbo
+            LoginSessionManager.markAsAuthenticated(player);
+            br.com.magnatasoriginal.mgtlogin.data.AccountStorage.updateLastLogin(player);
+
+            player.sendSystemMessage(Component.literal("§aLogin automático realizado com sucesso!"));
+            return;
+        }
+
+        // Caso contrário, coloca no limbo
         LoginSessionManager.applyLimbo(player);
 
         // Mensagem inicial
         player.sendSystemMessage(Component.literal("§eSua conta é ORIGINAL ou PIRATA?"));
         player.sendSystemMessage(Component.literal("§7Responda no chat com /original ou /pirata"));
     }
+
 
     private void teleport(ServerPlayer player, SpawnPoint point) {
         if (player.getServer() == null) return;

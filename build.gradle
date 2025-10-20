@@ -68,6 +68,7 @@ neoForge {
             sourceSet(sourceSets.main)
         }
     }
+
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
@@ -79,6 +80,10 @@ configurations {
 dependencies {
     // 🔑 Agora o Chat vai puxar o Core do Maven Local
     implementation "br.com.magnatasoriginal.mgtcore:mgtcore:1.0.1-SNAPSHOT"
+
+    // 🔹 Dependência de anotações do Mixin (compilação)
+    compileOnly "org.spongepowered:mixin:0.8.5"
+    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

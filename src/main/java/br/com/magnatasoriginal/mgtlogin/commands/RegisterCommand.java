@@ -27,6 +27,12 @@ public class RegisterCommand {
                                     String senha = StringArgumentType.getString(ctx, "senha");
                                     String repetir = StringArgumentType.getString(ctx, "repetir");
 
+                                    // 🔹 Premium não precisa registrar
+                                    if (LoginSessionManager.isMarkedPremium(player)) {
+                                        player.sendSystemMessage(Component.literal("§cContas originais não precisam se registrar."));
+                                        return 0;
+                                    }
+
                                     if (!senha.equals(repetir)) {
                                         throw PASSWORD_MISMATCH.create();
                                     }
@@ -39,18 +45,15 @@ public class RegisterCommand {
                                     // Gera hash da senha
                                     String hash = PasswordUtil.hashPassword(senha);
 
-                                    // Descobre se o jogador marcou como premium ou pirata
-                                    boolean premium = LoginSessionManager.isMarkedPremium(player);
-
-                                    // Registra a conta
-                                    boolean ok = AccountStorage.register(player, hash, premium);
+                                    // Registra a conta como pirata
+                                    boolean ok = AccountStorage.register(player, hash, false);
                                     if (!ok) {
                                         throw ALREADY_REGISTERED.create();
                                     }
 
                                     // Marca como autenticado e libera do limbo
                                     LoginSessionManager.markAsAuthenticated(player);
-                                    player.sendSystemMessage(Component.literal("§aConta registrada com sucesso!"));
+                                    player.sendSystemMessage(Component.literal("§aConta registrada com sucesso! Agora você está autenticado."));
 
                                     return 1;
                                 })

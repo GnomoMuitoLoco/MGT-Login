@@ -1,20 +1,43 @@
 package br.com.magnatasoriginal.mgtlogin.data;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SpawnStorage {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder()
+            .setPrettyPrinting()
+            // Adaptador para serializar/desserializar BlockPos
+            .registerTypeAdapter(BlockPos.class, new JsonSerializer<BlockPos>() {
+                @Override
+                public JsonElement serialize(BlockPos src, Type typeOfSrc, JsonSerializationContext context) {
+                    JsonObject obj = new JsonObject();
+                    obj.addProperty("x", src.getX());
+                    obj.addProperty("y", src.getY());
+                    obj.addProperty("z", src.getZ());
+                    return obj;
+                }
+            })
+            .registerTypeAdapter(BlockPos.class, new JsonDeserializer<BlockPos>() {
+                @Override
+                public BlockPos deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                    JsonObject obj = json.getAsJsonObject();
+                    int x = obj.get("x").getAsInt();
+                    int y = obj.get("y").getAsInt();
+                    int z = obj.get("z").getAsInt();
+                    return new BlockPos(x, y, z);
+                }
+            })
+            .create();
+
     private static File storageFile;
     private static final Map<String, SpawnPoint> spawns = new HashMap<>();
 
@@ -36,8 +59,12 @@ public class SpawnStorage {
     private static void load() {
         if (!storageFile.exists()) return;
         try (FileReader reader = new FileReader(storageFile)) {
-            Map<String, SpawnPoint> loaded = GSON.fromJson(reader, Map.class);
-            if (loaded != null) spawns.putAll(loaded);
+            Type type = new TypeToken<Map<String, SpawnPoint>>() {}.getType();
+            Map<String, SpawnPoint> loaded = GSON.fromJson(reader, type);
+            if (loaded != null) {
+                spawns.clear();
+                spawns.putAll(loaded);
+            }
         } catch (Exception e) {
             System.err.println("[MGT-Login] Erro ao carregar spawns: " + e.getMessage());
         }

@@ -103,8 +103,36 @@ public class LoginSessionManager {
     }
 
     public static UUID getEffectiveUUID(ServerPlayer player) {
+        // fallback: usa UUID offline ou o próprio UUID do player
         return overriddenUUIDs.getOrDefault(player.getUUID(), player.getUUID());
     }
+
+    public static UUID getEffectiveUUID(ServerPlayer player, String serverId) {
+        if (isMarkedPremium(player)) {
+            var result = br.com.magnatasoriginal.mgtlogin.auth.PremiumVerifier.verify(
+                    player.getGameProfile().getName(),
+                    serverId
+            );
+
+            if (result.isSuccess()) {
+                // Premium confirmado → retorna UUID online
+                return result.getUuid();
+            } else {
+                // Falhou → kicka o jogador
+                player.connection.disconnect(
+                        net.minecraft.network.chat.Component.literal(
+                                "§cFalha na autenticação premium: " + result.getReason()
+                        )
+                );
+                return player.getUUID(); // fallback
+            }
+        } else {
+            // Pirata → usa UUID offline
+            return overriddenUUIDs.getOrDefault(player.getUUID(), player.getUUID());
+        }
+    }
+
+
 
     public static void clearSession(ServerPlayer player) {
         UUID uuid = player.getUUID();

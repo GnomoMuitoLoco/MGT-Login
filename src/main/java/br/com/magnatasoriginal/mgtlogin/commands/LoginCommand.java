@@ -25,7 +25,13 @@ public class LoginCommand {
                             ServerPlayer player = ctx.getSource().getPlayerOrException();
                             String senha = StringArgumentType.getString(ctx, "senha");
 
-                            // Recupera a conta pelo UUID efetivo
+                            // 🔹 Premium não precisa logar
+                            if (LoginSessionManager.isMarkedPremium(player)) {
+                                player.sendSystemMessage(Component.literal("§cContas originais não precisam usar /login."));
+                                return 0;
+                            }
+
+                            // Recupera a conta pelo UUID efetivo (pirata)
                             AccountStorage.AccountData data =
                                     AccountStorage.getAccount(LoginSessionManager.getEffectiveUUID(player));
 
@@ -40,6 +46,10 @@ public class LoginCommand {
 
                             // Marca como autenticado e libera do limbo
                             LoginSessionManager.markAsAuthenticated(player);
+
+                            // Atualiza IP e data de login
+                            AccountStorage.updateLastLogin(player);
+
                             player.sendSystemMessage(Component.literal("§aLogin realizado com sucesso!"));
 
                             return 1;

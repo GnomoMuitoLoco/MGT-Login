@@ -29,6 +29,14 @@ public class LoginEventHandler {
         // Limpa qualquer sessão antiga
         LoginSessionManager.clearSession(player);
 
+        // 🔹 Verifica auto‑login (mesmo nick + mesmo IP)
+        if (AccountStorage.canAutoLogin(player)) {
+            LoginSessionManager.markAsAuthenticated(player);
+            AccountStorage.updateLastLogin(player);
+            player.sendSystemMessage(Component.literal("§aLogin automático realizado com sucesso!"));
+            return;
+        }
+
         // Coloca no limbo
         LoginSessionManager.applyLimbo(player);
 
@@ -36,17 +44,15 @@ public class LoginEventHandler {
         if (!LoginSessionManager.hasChosenAccountType(player)) {
             player.sendSystemMessage(Component.literal("§eSua conta é ORIGINAL ou PIRATA?"));
             player.sendSystemMessage(Component.literal("§7Responda com /original ou /pirata"));
-            return; // <-- interrompe aqui, não decide login/registro ainda
+            return;
         }
 
         // Só chega aqui se já tiver escolhido ORIGINAL ou PIRATA
         var effectiveUUID = LoginSessionManager.getEffectiveUUID(player);
 
         if (AccountStorage.isRegistered(effectiveUUID)) {
-            // Conta já existe → precisa logar
             player.sendSystemMessage(Component.literal("§eUse /login <senha> para entrar."));
         } else {
-            // Conta não existe → precisa registrar
             player.sendSystemMessage(Component.literal("§eUse /register <senha> <repetir senha> para criar sua conta."));
         }
     }
@@ -149,7 +155,7 @@ public class LoginEventHandler {
     @SubscribeEvent
     public void onItemPickup(net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent.Pre event) {
         if (event.getPlayer() instanceof ServerPlayer player && !LoginSessionManager.isAuthenticated(player)) {
-            event.setCanPickup(TriState.FALSE); // <-- método correto no NeoForge 1.21.1
+            event.setCanPickup(TriState.FALSE); // método correto no NeoForge 1.21.1
             player.sendSystemMessage(Component.literal("§cVocê não pode pegar itens antes de autenticar."));
         }
     }

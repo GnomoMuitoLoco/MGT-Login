@@ -16,9 +16,19 @@ public class PirataCommand {
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
 
+                    // Gera UUID offline baseado no nick
                     UUID fakeUUID = UUIDResolver.generateOfflineUUID(player.getGameProfile().getName());
+
+                    // Marca como pirata
                     LoginSessionManager.markAsPirata(player, fakeUUID);
-                    player.sendSystemMessage(Component.literal("§eSua conta foi marcada como PIRATA. Agora use /registrar <senha> <repetir senha>."));
+
+                    // Mensagem de instrução
+                    player.sendSystemMessage(Component.literal(
+                            "§eSua conta foi marcada como PIRATA.\n" +
+                                    "§7Use §f/registrar <senha> <repetir senha> §7se for sua primeira vez.\n" +
+                                    "§7Se já tiver conta, use §f/login <senha>."
+                    ));
+
                     return 1;
                 }));
     }

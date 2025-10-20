@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "br.com.magnatasoriginal.mgtlogin.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "MixinServerLogin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
