@@ -1,30 +1,31 @@
 package br.com.magnatasoriginal.mgtlogin.session;
 
+import br.com.magnatasoriginal.mgtlogin.util.ModLogger;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Gerenciador de sessões de login.
+ * Controla estado de autenticação, limbo e tipo de conta (Original/Pirata).
+ *
+ * Autenticação é puramente local (sem verificação Mojang).
+ */
 public class LoginSessionManager {
-    private static final Set<UUID> authenticatedPlayers = new HashSet<>();
-    private static final Map<UUID, Boolean> pendingPremiumFlag = new HashMap<>();
-    private static final Map<UUID, UUID> overriddenUUIDs = new HashMap<>();
+    private static final Set<UUID> authenticatedPlayers = ConcurrentHashMap.newKeySet();
+    private static final Map<UUID, Boolean> accountTypeOriginal = new ConcurrentHashMap<>();
+    private static final Map<UUID, UUID> overriddenUUIDs = new ConcurrentHashMap<>();
 
-    // Aplica limbo total
+    /**
+     * Aplica limbo total usando o LimboManager.
+     */
     public static void applyLimbo(ServerPlayer player) {
-        // Invulnerável e invisível
-        player.setInvulnerable(true);
-        player.setInvisible(true);
-        player.setNoGravity(true);
+        // Usa o novo LimboManager que gerencia tudo
+        LimboManager.enterLimbo(player);
 
-        // Remove habilidades de construção
-        player.getAbilities().mayBuild = false;
-        player.getAbilities().instabuild = false;
-        player.onUpdateAbilities();
-
-        // Zera atributos de movimento
+        // Aplica imobilização adicional via atributos
         var moveAttr = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (moveAttr != null) {
             moveAttr.setBaseValue(0.0D);
@@ -35,27 +36,22 @@ public class LoginSessionManager {
             flyAttr.setBaseValue(0.0D);
         }
 
+        // Remove habilidades
+        player.getAbilities().mayBuild = false;
+        player.getAbilities().instabuild = false;
+        player.getAbilities().mayfly = false;
+        player.getAbilities().flying = false;
+        player.onUpdateAbilities();
 
-        // Aplica cegueira infinita
-        player.addEffect(new MobEffectInstance(
-                MobEffects.BLINDNESS,
-                Integer.MAX_VALUE,
-                1,
-                false, // ambient
-                false  // showParticles
-        ));
+        ModLogger.debug("Limbo aplicado para: " + player.getName().getString());
     }
 
-    // Libera do limbo após autenticação
+    /**
+     * Libera do limbo usando o LimboManager.
+     */
     public static void releaseFromLimbo(ServerPlayer player) {
-        player.setInvulnerable(false);
-        player.setInvisible(false);
-        player.setNoGravity(false);
-
-        // Restaura habilidades padrão
-        player.getAbilities().mayBuild = true;
-        player.getAbilities().instabuild = false;
-        player.onUpdateAbilities();
+        // Usa o LimboManager para restaurar inventário
+        LimboManager.exitLimbo(player);
 
         // Restaura atributos de movimento
         var moveAttr = player.getAttribute(Attributes.MOVEMENT_SPEED);
@@ -68,79 +64,65 @@ public class LoginSessionManager {
             flyAttr.setBaseValue(0.05D); // valor vanilla
         }
 
-        // Remove cegueira
-        player.removeEffect(MobEffects.BLINDNESS);
+        // Restaura habilidades padrão
+        player.getAbilities().mayBuild = true;
+        player.getAbilities().instabuild = false;
+        player.onUpdateAbilities();
+
+        ModLogger.debug("Limbo removido para: " + player.getName().getString());
     }
 
     // Marca como autenticado
     public static void markAsAuthenticated(ServerPlayer player) {
         authenticatedPlayers.add(player.getUUID());
         releaseFromLimbo(player);
+        ModLogger.info("Jogador autenticado: " + player.getName().getString());
     }
 
     public static boolean isAuthenticated(ServerPlayer player) {
         return authenticatedPlayers.contains(player.getUUID());
     }
 
-    // Marca como original (premium)
+    // Marca como original (conta premium/original)
     public static void markAsOriginal(ServerPlayer player) {
-        pendingPremiumFlag.put(player.getUUID(), true);
+        accountTypeOriginal.put(player.getUUID(), true);
+        ModLogger.debug("Jogador marcado como ORIGINAL: " + player.getName().getString());
     }
 
     // Marca como pirata e substitui UUID
-    public static void markAsPirata(ServerPlayer player, UUID fakeUUID) {
-        pendingPremiumFlag.put(player.getUUID(), false);
-        overriddenUUIDs.put(player.getUUID(), fakeUUID);
+    public static void markAsPirata(ServerPlayer player, UUID offlineUUID) {
+        accountTypeOriginal.put(player.getUUID(), false);
+        overriddenUUIDs.put(player.getUUID(), offlineUUID);
+        ModLogger.debug("Jogador marcado como PIRATA: " + player.getName().getString());
     }
 
-    public static boolean isMarkedPremium(ServerPlayer player) {
-        return pendingPremiumFlag.getOrDefault(player.getUUID(), false);
+    public static boolean isMarkedOriginal(ServerPlayer player) {
+        return accountTypeOriginal.getOrDefault(player.getUUID(), false);
     }
 
     // Já escolheu ORIGINAL ou PIRATA?
     public static boolean hasChosenAccountType(ServerPlayer player) {
-        return pendingPremiumFlag.containsKey(player.getUUID());
+        return accountTypeOriginal.containsKey(player.getUUID());
     }
 
+    /**
+     * Retorna o UUID efetivo do jogador.
+     * - Para contas ORIGINAL: usa o UUID da conexão atual
+     * - Para contas PIRATA: usa UUID offline gerado
+     */
     public static UUID getEffectiveUUID(ServerPlayer player) {
-        // fallback: usa UUID offline ou o próprio UUID do player
         return overriddenUUIDs.getOrDefault(player.getUUID(), player.getUUID());
     }
-
-    public static UUID getEffectiveUUID(ServerPlayer player, String serverId) {
-        if (isMarkedPremium(player)) {
-            var result = br.com.magnatasoriginal.mgtlogin.auth.PremiumVerifier.verify(
-                    player.getGameProfile().getName(),
-                    serverId
-            );
-
-            if (result.isSuccess()) {
-                // Premium confirmado → retorna UUID online
-                return result.getUuid();
-            } else {
-                // Falhou → kicka o jogador
-                player.connection.disconnect(
-                        net.minecraft.network.chat.Component.literal(
-                                "§cFalha na autenticação premium: " + result.getReason()
-                        )
-                );
-                return player.getUUID(); // fallback
-            }
-        } else {
-            // Pirata → usa UUID offline
-            return overriddenUUIDs.getOrDefault(player.getUUID(), player.getUUID());
-        }
-    }
-
-
 
     public static void clearSession(ServerPlayer player) {
         UUID uuid = player.getUUID();
         authenticatedPlayers.remove(uuid);
-        pendingPremiumFlag.remove(uuid);
+        accountTypeOriginal.remove(uuid);
         overriddenUUIDs.remove(uuid);
 
-        // Garante que efeitos sejam limpos
-        player.removeEffect(MobEffects.BLINDNESS);
+        // Limpa dados do LimboManager
+        LimboManager.clearLimboData(uuid);
+
+        ModLogger.debug("Sessão limpa para: " + player.getName().getString());
     }
 }

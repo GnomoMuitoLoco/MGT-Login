@@ -1,9 +1,10 @@
 package br.com.magnatasoriginal.mgtlogin.data;
 
 import br.com.magnatasoriginal.mgtlogin.session.LoginSessionManager;
+import br.com.magnatasoriginal.mgtlogin.util.ModLogger;
+import br.com.magnatasoriginal.mgtlogin.util.GsonProvider;
 import br.com.magnatasoriginal.mgtlogin.util.PasswordUtil;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -13,14 +14,14 @@ import java.io.FileWriter;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 public class AccountStorage {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Map<UUID, AccountData> accounts = new HashMap<>();
+    private static final Gson GSON = GsonProvider.get();
+    private static final Map<UUID, AccountData> accounts = new ConcurrentHashMap<>();
     private static File storageFile;
 
     // Inicializa a persistência
@@ -30,6 +31,7 @@ public class AccountStorage {
 
         storageFile = new File(dir, "accounts.json");
         load();
+        ModLogger.info("AccountStorage inicializado em: " + storageFile.getAbsolutePath());
     }
 
     // Consulta básica
@@ -64,6 +66,7 @@ public class AccountStorage {
         );
         accounts.put(uuid, data);
         save();
+        ModLogger.info("Conta registrada: " + player.getGameProfile().getName() + " (Premium: " + premium + ")");
         return true;
     }
 
@@ -82,6 +85,7 @@ public class AccountStorage {
             );
             accounts.put(uuid, updated);
             save();
+            ModLogger.info("Senha atualizada para: " + player.getGameProfile().getName());
         }
     }
 
@@ -130,9 +134,12 @@ public class AccountStorage {
         try (FileReader reader = new FileReader(storageFile)) {
             Type type = new TypeToken<Map<UUID, AccountData>>() {}.getType();
             Map<UUID, AccountData> loaded = GSON.fromJson(reader, type);
-            if (loaded != null) accounts.putAll(loaded);
+            if (loaded != null) {
+                accounts.putAll(loaded);
+                ModLogger.info("Carregadas " + accounts.size() + " contas do armazenamento");
+            }
         } catch (Exception e) {
-            System.err.println("[MGT-Login] Erro ao carregar contas: " + e.getMessage());
+            ModLogger.erro("Erro ao carregar contas", e);
         }
     }
 
@@ -141,7 +148,7 @@ public class AccountStorage {
         try (FileWriter writer = new FileWriter(storageFile)) {
             GSON.toJson(accounts, writer);
         } catch (Exception e) {
-            System.err.println("[MGT-Login] Erro ao salvar contas: " + e.getMessage());
+            ModLogger.erro("Erro ao salvar contas", e);
         }
     }
 

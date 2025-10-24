@@ -8,8 +8,6 @@ version="1.0.0-SNAPSHOT"
 displayName="MGT-Login"
 authors="GnomoMuitoLoco"
 description='''Esse é um mod de login personalizado, oferecendo funcionalidades adicionais de segurança e autenticação.'''
-[[mixins]]
-config = "mixins.mgtlogin.json"
 
 [[dependencies.mgtlogin]]
 modId="neoforge"

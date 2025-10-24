@@ -1,54 +1,47 @@
 package br.com.magnatasoriginal.mgtlogin.commands;
 
-import br.com.magnatasoriginal.mgtlogin.auth.AuthResult;
-import br.com.magnatasoriginal.mgtlogin.auth.PremiumVerifier;
-import br.com.magnatasoriginal.mgtlogin.auth.HandshakeCache;
 import br.com.magnatasoriginal.mgtlogin.data.AccountStorage;
 import br.com.magnatasoriginal.mgtlogin.session.LoginSessionManager;
+import br.com.magnatasoriginal.mgtlogin.util.ModLogger;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
+/**
+ * Comando /original
+ * Marca a conta do jogador como ORIGINAL (premium).
+ * Permitido ANTES da autenticação.
+ */
 public class OriginalCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("original")
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
-                    System.out.println("[MGT-Login] 🚀 Jogador " + player.getGameProfile().getName() + " executou /original");
+                    ModLogger.info("Jogador " + player.getGameProfile().getName() + " executou /original");
 
-                    // Recupera o hash capturado no handshake usando o connectionId
-                    String serverHash = HandshakeCache.get(player.getUUID());
-                    if (serverHash == null) {
-                        player.sendSystemMessage(Component.literal("§cNão foi possível validar sua sessão Mojang (hash ausente)."));
-                        return 0;
-                    }
+                    // Verifica se já escolheu tipo de conta antes
+                    boolean isFirstTime = !LoginSessionManager.hasChosenAccountType(player);
 
-                    // Faz a verificação premium contra a API Mojang
-                    AuthResult result = PremiumVerifier.verify(player.getGameProfile().getName(), serverHash);
-
-                    if (!result.isSuccess()) {
-                        player.connection.disconnect(Component.literal("§cFalha na autenticação premium: " + result.getReason()));
-                        return 0;
-                    }
-
-                    // Marca como original e autentica
+                    // Marca como original (sem verificação Mojang)
                     LoginSessionManager.markAsOriginal(player);
-                    LoginSessionManager.markAsAuthenticated(player);
 
-                    // Persistência
-                    if (!AccountStorage.isRegistered(result.getUuid())) {
-                        AccountStorage.register(player, "", true); // premium sem senha
-                    } else {
-                        AccountStorage.updateLastLogin(player);
+                    // Mostra mensagem APENAS na primeira vez
+                    if (isFirstTime) {
+                        player.sendSystemMessage(Component.literal("§aConta marcada como ORIGINAL."));
                     }
 
-                    // Limpa o cache (usando connectionId)
-                    HandshakeCache.clear(player.getUUID());
+                    // Verifica se já tem conta registrada
+                    if (AccountStorage.isRegistered(LoginSessionManager.getEffectiveUUID(player))) {
+                        // Conta já existe, pedir login
+                        player.sendSystemMessage(Component.literal("§eUse §f/login <senha> §epara entrar."));
+                    } else {
+                        // Conta nova, pedir registro
+                        player.sendSystemMessage(Component.literal("§eUse §f/register <senha> <senha> §epara criar sua conta."));
+                    }
 
-                    player.sendSystemMessage(Component.literal("§aConta validada como ORIGINAL (premium). Bem-vindo!"));
                     return 1;
                 }));
     }

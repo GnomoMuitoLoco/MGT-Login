@@ -9,6 +9,7 @@ public class LoginConfig {
     // Geral
     public static final ModConfigSpec.ConfigValue<String> uuidType;
     public static final ModConfigSpec.IntValue sessionTimeout;
+    public static final ModConfigSpec.IntValue limboTimeoutMinutes;
 
     // Teleport
     public static final ModConfigSpec.BooleanValue safeLocation;
@@ -37,6 +38,9 @@ public class LoginConfig {
 
         sessionTimeout = BUILDER.comment("Tempo de sessão em minutos (autologin por IP)")
                 .defineInRange("session-timeout", 5, 1, 1440);
+
+        limboTimeoutMinutes = BUILDER.comment("Tempo máximo em minutos que um jogador pode ficar no limbo antes de ser kickado")
+                .defineInRange("limbo-timeout-minutes", 5, 1, 30);
 
         BUILDER.pop();
 

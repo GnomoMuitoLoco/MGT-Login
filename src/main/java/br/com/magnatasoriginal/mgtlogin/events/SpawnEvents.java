@@ -4,17 +4,16 @@ import br.com.magnatasoriginal.mgtlogin.config.LoginConfig;
 import br.com.magnatasoriginal.mgtlogin.data.SpawnStorage;
 import br.com.magnatasoriginal.mgtlogin.data.SpawnStorage.SpawnPoint;
 import br.com.magnatasoriginal.mgtlogin.session.LoginSessionManager;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
+import br.com.magnatasoriginal.mgtlogin.util.TeleportUtil;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
+/**
+ * Gerencia eventos relacionados a teleportes de spawn.
+ * LoginEventHandler é responsável pelo controle de sessão/autologin/limbo.
+ */
 public class SpawnEvents {
 
     @SubscribeEvent
@@ -23,7 +22,9 @@ public class SpawnEvents {
         if (!LoginConfig.teleportOnDeath.get()) return;
 
         SpawnPoint point = SpawnStorage.getSpawn("death");
-        if (point != null) teleport(player, point);
+        if (point != null) {
+            TeleportUtil.teleportToSpawn(player, point);
+        }
     }
 
     @SubscribeEvent
@@ -34,74 +35,21 @@ public class SpawnEvents {
         if (!player.getPersistentData().getBoolean("mgtlogin_firstJoin")) {
             player.getPersistentData().putBoolean("mgtlogin_firstJoin", true);
 
-            // 🔹 Mostra se é Original ou Pirata
-            // 🔹 Só mostra se já escolheu
-            if (LoginSessionManager.hasChosenAccountType(player)) {
-                if (LoginSessionManager.isMarkedPremium(player)) {
-                    player.sendSystemMessage(Component.literal("§aConta marcada como ORIGINAL (premium)."));
-                } else {
-                    player.sendSystemMessage(Component.literal("§cConta marcada como PIRATA."));
-                }
-            }
-
-
             // Teleporta se houver spawn configurado
             SpawnPoint point = SpawnStorage.getSpawn("firstjoin");
-            if (point != null) teleport(player, point);
+            if (point != null) {
+                TeleportUtil.teleportToSpawn(player, point);
+            }
         }
     }
-
 
     @SubscribeEvent
     public void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
 
         SpawnPoint point = SpawnStorage.getSpawn("login");
-        if (point != null) teleport(player, point);
-    }
-
-    @SubscribeEvent
-    public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
-
-        // Limpa sessão antiga
-        LoginSessionManager.clearSession(player);
-
-        // 🔹 Verifica se pode auto‑logar (mesmo nick + mesmo IP)
-        if (br.com.magnatasoriginal.mgtlogin.data.AccountStorage.canAutoLogin(player)) {
-            // Marca como autenticado e libera do limbo
-            LoginSessionManager.markAsAuthenticated(player);
-            br.com.magnatasoriginal.mgtlogin.data.AccountStorage.updateLastLogin(player);
-
-            player.sendSystemMessage(Component.literal("§aLogin automático realizado com sucesso!"));
-            return;
+        if (point != null) {
+            TeleportUtil.teleportToSpawn(player, point);
         }
-
-        // Caso contrário, coloca no limbo
-        LoginSessionManager.applyLimbo(player);
-
-        // Mensagem inicial
-        player.sendSystemMessage(Component.literal("§eSua conta é ORIGINAL ou PIRATA?"));
-        player.sendSystemMessage(Component.literal("§7Responda no chat com /original ou /pirata"));
-    }
-
-
-    private void teleport(ServerPlayer player, SpawnPoint point) {
-        if (player.getServer() == null) return;
-
-        ResourceLocation dimLoc = ResourceLocation.tryParse(point.dimension());
-        if (dimLoc == null) return;
-
-        ResourceKey<Level> dimKey = ResourceKey.create(Registries.DIMENSION, dimLoc);
-        ServerLevel level = player.getServer().getLevel(dimKey);
-        if (level == null) return;
-
-        BlockPos pos = point.pos();
-        player.teleportTo(level,
-                pos.getX() + 0.5,
-                pos.getY(),
-                pos.getZ() + 0.5,
-                point.yaw(),
-                point.pitch());
     }
 }

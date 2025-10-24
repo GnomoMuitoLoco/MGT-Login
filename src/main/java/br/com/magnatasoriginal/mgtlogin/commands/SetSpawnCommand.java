@@ -1,6 +1,7 @@
 package br.com.magnatasoriginal.mgtlogin.commands;
 
 import br.com.magnatasoriginal.mgtlogin.data.SpawnStorage;
+import br.com.magnatasoriginal.mgtlogin.util.PermissionHelper;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -12,15 +13,19 @@ public class SetSpawnCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("setspawn")
+                .requires(PermissionHelper.requires("setspawn"))
                 .executes(ctx -> setSpawn(ctx.getSource(), "default")));
 
         dispatcher.register(Commands.literal("setspawndeath")
+                .requires(PermissionHelper.requires("setspawn"))
                 .executes(ctx -> setSpawn(ctx.getSource(), "death")));
 
         dispatcher.register(Commands.literal("setspawnfirstjoin")
+                .requires(PermissionHelper.requires("setspawn"))
                 .executes(ctx -> setSpawn(ctx.getSource(), "firstjoin")));
 
         dispatcher.register(Commands.literal("setspawnlogin")
+                .requires(PermissionHelper.requires("setspawn"))
                 .executes(ctx -> setSpawn(ctx.getSource(), "login")));
     }
 

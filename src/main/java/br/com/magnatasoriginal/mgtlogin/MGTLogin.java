@@ -4,7 +4,10 @@ import br.com.magnatasoriginal.mgtlogin.commands.*;
 import br.com.magnatasoriginal.mgtlogin.config.LoginConfig;
 import br.com.magnatasoriginal.mgtlogin.data.AccountStorage;
 import br.com.magnatasoriginal.mgtlogin.data.SpawnStorage;
+import br.com.magnatasoriginal.mgtlogin.events.LoginEventHandler;
 import br.com.magnatasoriginal.mgtlogin.events.SpawnEvents;
+import br.com.magnatasoriginal.mgtlogin.session.LimboManager;
+import br.com.magnatasoriginal.mgtlogin.util.ModLogger;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.neoforged.bus.api.IEventBus;
@@ -16,7 +19,6 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.io.File;
-import java.nio.file.Path;
 
 @Mod(MGTLogin.MODID)
 public class MGTLogin {
@@ -31,7 +33,13 @@ public class MGTLogin {
         modBus.addListener(this::commonSetup);
 
         // 3) Registro de eventos de jogo (runtime)
+        // LoginEventHandler é a fonte única de verdade para controle de sessão/autologin/limbo
+        NeoForge.EVENT_BUS.register(new LoginEventHandler());
+        // SpawnEvents gerencia apenas teleportes
         NeoForge.EVENT_BUS.register(new SpawnEvents());
+        // LimboManager gerencia tick de limbo e timeout
+        NeoForge.EVENT_BUS.register(LimboManager.class);
+
 
         // 4) Registro de comandos
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
@@ -47,10 +55,11 @@ public class MGTLogin {
         // Inicializa persistência de spawns
         SpawnStorage.init(configDir);
 
-        // Inicializa persistência de contas
-        AccountStorage.init(Path.of(configDir.getAbsolutePath(), "accounts.json"));
+        // ✅ FIX: Passa o diretório correto, não o caminho do arquivo
+        // AccountStorage.init agora resolve internamente para "mgtlogin/accounts.json"
+        AccountStorage.init(configDir.toPath());
 
-        System.out.println("[MGT-Login] Inicialização concluída.");
+        ModLogger.info("MGT-Login inicialização concluída.");
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {
@@ -63,5 +72,6 @@ public class MGTLogin {
         PirataCommand.register(dispatcher);
         SetSpawnCommand.register(dispatcher);
         SpawnCommand.register(dispatcher);
+        AdminCommands.register(dispatcher); // ✅ Comandos administrativos
     }
 }

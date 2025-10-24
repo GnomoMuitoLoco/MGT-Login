@@ -17,6 +17,8 @@ public class RegisterCommand {
             new SimpleCommandExceptionType(Component.literal("§cAs senhas não coincidem."));
     private static final SimpleCommandExceptionType ALREADY_REGISTERED =
             new SimpleCommandExceptionType(Component.literal("§cVocê já possui uma conta registrada."));
+    private static final SimpleCommandExceptionType NO_ACCOUNT_TYPE =
+            new SimpleCommandExceptionType(Component.literal("§cEscolha primeiro se sua conta é ORIGINAL ou PIRATA usando /original ou /pirata"));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("register")
@@ -27,10 +29,9 @@ public class RegisterCommand {
                                     String senha = StringArgumentType.getString(ctx, "senha");
                                     String repetir = StringArgumentType.getString(ctx, "repetir");
 
-                                    // 🔹 Premium não precisa registrar
-                                    if (LoginSessionManager.isMarkedPremium(player)) {
-                                        player.sendSystemMessage(Component.literal("§cContas originais não precisam se registrar."));
-                                        return 0;
+                                    // Verifica se escolheu tipo de conta
+                                    if (!LoginSessionManager.hasChosenAccountType(player)) {
+                                        throw NO_ACCOUNT_TYPE.create();
                                     }
 
                                     if (!senha.equals(repetir)) {
@@ -45,15 +46,16 @@ public class RegisterCommand {
                                     // Gera hash da senha
                                     String hash = PasswordUtil.hashPassword(senha);
 
-                                    // Registra a conta como pirata
-                                    boolean ok = AccountStorage.register(player, hash, false);
+                                    // Registra a conta (original ou pirata)
+                                    boolean isOriginal = LoginSessionManager.isMarkedOriginal(player);
+                                    boolean ok = AccountStorage.register(player, hash, isOriginal);
                                     if (!ok) {
                                         throw ALREADY_REGISTERED.create();
                                     }
 
                                     // Marca como autenticado e libera do limbo
                                     LoginSessionManager.markAsAuthenticated(player);
-                                    player.sendSystemMessage(Component.literal("§aConta registrada com sucesso! Agora você está autenticado."));
+                                    player.sendSystemMessage(Component.literal("§aConta registrada com sucesso! Você está autenticado."));
 
                                     return 1;
                                 })

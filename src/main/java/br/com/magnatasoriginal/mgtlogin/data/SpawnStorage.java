@@ -1,6 +1,8 @@
 package br.com.magnatasoriginal.mgtlogin.data;
 
-import com.google.gson.*;
+import br.com.magnatasoriginal.mgtlogin.util.GsonProvider;
+import br.com.magnatasoriginal.mgtlogin.util.ModLogger;
+import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -9,47 +11,25 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.lang.reflect.Type;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SpawnStorage {
-    private static final Gson GSON = new GsonBuilder()
-            .setPrettyPrinting()
-            // Adaptador para serializar/desserializar BlockPos
-            .registerTypeAdapter(BlockPos.class, new JsonSerializer<BlockPos>() {
-                @Override
-                public JsonElement serialize(BlockPos src, Type typeOfSrc, JsonSerializationContext context) {
-                    JsonObject obj = new JsonObject();
-                    obj.addProperty("x", src.getX());
-                    obj.addProperty("y", src.getY());
-                    obj.addProperty("z", src.getZ());
-                    return obj;
-                }
-            })
-            .registerTypeAdapter(BlockPos.class, new JsonDeserializer<BlockPos>() {
-                @Override
-                public BlockPos deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-                    JsonObject obj = json.getAsJsonObject();
-                    int x = obj.get("x").getAsInt();
-                    int y = obj.get("y").getAsInt();
-                    int z = obj.get("z").getAsInt();
-                    return new BlockPos(x, y, z);
-                }
-            })
-            .create();
-
+    private static final Gson GSON = GsonProvider.get();
     private static File storageFile;
-    private static final Map<String, SpawnPoint> spawns = new HashMap<>();
+    private static final Map<String, SpawnPoint> spawns = new ConcurrentHashMap<>();
 
     public static void init(File dir) {
         if (!dir.exists()) dir.mkdirs();
         storageFile = new File(dir, "spawns.json");
         load();
+        ModLogger.info("SpawnStorage inicializado em: " + storageFile.getAbsolutePath());
     }
 
     public static void setSpawn(String type, ServerLevel level, BlockPos pos, float yaw, float pitch) {
         spawns.put(type, new SpawnPoint(level.dimension().location().toString(), pos, yaw, pitch));
         save();
+        ModLogger.info("Spawn '" + type + "' definido em " + level.dimension().location() + " " + pos);
     }
 
     public static SpawnPoint getSpawn(String type) {
@@ -64,9 +44,10 @@ public class SpawnStorage {
             if (loaded != null) {
                 spawns.clear();
                 spawns.putAll(loaded);
+                ModLogger.info("Carregados " + spawns.size() + " pontos de spawn");
             }
         } catch (Exception e) {
-            System.err.println("[MGT-Login] Erro ao carregar spawns: " + e.getMessage());
+            ModLogger.erro("Erro ao carregar spawns", e);
         }
     }
 
@@ -74,7 +55,7 @@ public class SpawnStorage {
         try (FileWriter writer = new FileWriter(storageFile)) {
             GSON.toJson(spawns, writer);
         } catch (Exception e) {
-            System.err.println("[MGT-Login] Erro ao salvar spawns: " + e.getMessage());
+            ModLogger.erro("Erro ao salvar spawns", e);
         }
     }
 
