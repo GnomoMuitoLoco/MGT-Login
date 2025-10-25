@@ -2,8 +2,7 @@
 # Tipo de UUID: REAL, RANDOM ou OFFLINE
 unique-id-type = "REAL"
 
-# Tempo de sessão em minutos (autologin por IP)
-session-timeout = 5
+
 
 [teleport]
 # Teleportar para local seguro ao entrar

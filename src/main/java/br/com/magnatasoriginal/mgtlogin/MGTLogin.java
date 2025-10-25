@@ -68,8 +68,6 @@ public class MGTLogin {
         LoginCommand.register(dispatcher);
         RegisterCommand.register(dispatcher);
         ChangePasswordCommand.register(dispatcher);
-        OriginalCommand.register(dispatcher);
-        PirataCommand.register(dispatcher);
         SetSpawnCommand.register(dispatcher);
         SpawnCommand.register(dispatcher);
         AdminCommands.register(dispatcher); // ✅ Comandos administrativos

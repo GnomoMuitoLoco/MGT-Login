@@ -17,8 +17,6 @@ public class LoginCommand {
             new SimpleCommandExceptionType(Component.literal("§cVocê não possui uma conta registrada."));
     private static final SimpleCommandExceptionType WRONG_PASSWORD =
             new SimpleCommandExceptionType(Component.literal("§cSenha incorreta."));
-    private static final SimpleCommandExceptionType NO_ACCOUNT_TYPE =
-            new SimpleCommandExceptionType(Component.literal("§cEscolha primeiro se sua conta é ORIGINAL ou PIRATA usando /original ou /pirata"));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("login")
@@ -27,14 +25,9 @@ public class LoginCommand {
                             ServerPlayer player = ctx.getSource().getPlayerOrException();
                             String senha = StringArgumentType.getString(ctx, "senha");
 
-                            // Verifica se escolheu tipo de conta
-                            if (!LoginSessionManager.hasChosenAccountType(player)) {
-                                throw NO_ACCOUNT_TYPE.create();
-                            }
-
-                            // Recupera a conta pelo UUID efetivo
+                            // Recupera a conta pelo UUID do jogador
                             AccountStorage.AccountData data =
-                                    AccountStorage.getAccount(LoginSessionManager.getEffectiveUUID(player));
+                                    AccountStorage.getAccount(player.getUUID());
 
                             if (data == null) {
                                 throw NOT_REGISTERED.create();

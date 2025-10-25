@@ -9,14 +9,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Gerenciador de sessões de login.
- * Controla estado de autenticação, limbo e tipo de conta (Original/Pirata).
+ * Controla estado de autenticação e limbo.
  *
- * Autenticação é puramente local (sem verificação Mojang).
+ * Autenticação é puramente local (IP + Nick), sem verificação Mojang.
  */
 public class LoginSessionManager {
     private static final Set<UUID> authenticatedPlayers = ConcurrentHashMap.newKeySet();
-    private static final Map<UUID, Boolean> accountTypeOriginal = new ConcurrentHashMap<>();
-    private static final Map<UUID, UUID> overriddenUUIDs = new ConcurrentHashMap<>();
 
     /**
      * Aplica limbo total usando o LimboManager.
@@ -50,7 +48,7 @@ public class LoginSessionManager {
      * Libera do limbo usando o LimboManager.
      */
     public static void releaseFromLimbo(ServerPlayer player) {
-        // Usa o LimboManager para restaurar inventário
+        // Usa o LimboManager para liberar do limbo
         LimboManager.exitLimbo(player);
 
         // Restaura atributos de movimento
@@ -83,42 +81,9 @@ public class LoginSessionManager {
         return authenticatedPlayers.contains(player.getUUID());
     }
 
-    // Marca como original (conta premium/original)
-    public static void markAsOriginal(ServerPlayer player) {
-        accountTypeOriginal.put(player.getUUID(), true);
-        ModLogger.debug("Jogador marcado como ORIGINAL: " + player.getName().getString());
-    }
-
-    // Marca como pirata e substitui UUID
-    public static void markAsPirata(ServerPlayer player, UUID offlineUUID) {
-        accountTypeOriginal.put(player.getUUID(), false);
-        overriddenUUIDs.put(player.getUUID(), offlineUUID);
-        ModLogger.debug("Jogador marcado como PIRATA: " + player.getName().getString());
-    }
-
-    public static boolean isMarkedOriginal(ServerPlayer player) {
-        return accountTypeOriginal.getOrDefault(player.getUUID(), false);
-    }
-
-    // Já escolheu ORIGINAL ou PIRATA?
-    public static boolean hasChosenAccountType(ServerPlayer player) {
-        return accountTypeOriginal.containsKey(player.getUUID());
-    }
-
-    /**
-     * Retorna o UUID efetivo do jogador.
-     * - Para contas ORIGINAL: usa o UUID da conexão atual
-     * - Para contas PIRATA: usa UUID offline gerado
-     */
-    public static UUID getEffectiveUUID(ServerPlayer player) {
-        return overriddenUUIDs.getOrDefault(player.getUUID(), player.getUUID());
-    }
-
     public static void clearSession(ServerPlayer player) {
         UUID uuid = player.getUUID();
         authenticatedPlayers.remove(uuid);
-        accountTypeOriginal.remove(uuid);
-        overriddenUUIDs.remove(uuid);
 
         // Limpa dados do LimboManager
         LimboManager.clearLimboData(uuid);

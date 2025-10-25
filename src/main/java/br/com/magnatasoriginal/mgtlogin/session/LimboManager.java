@@ -6,8 +6,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -26,25 +24,17 @@ public class LimboManager {
 
     /**
      * Coloca um jogador em limbo.
-     * Guarda inventário e posição inicial.
+     * NÃO modifica o inventário para evitar perda de itens.
+     * Apenas trava a posição e aplica efeitos visuais.
      */
     public static void enterLimbo(ServerPlayer player) {
         BlockPos spawnPos = player.blockPosition();
         float spawnYaw = player.getYRot();
         float spawnPitch = player.getXRot();
 
-        // Guarda inventário
-        ItemStack[] savedInventory = new ItemStack[player.getInventory().getContainerSize()];
-        for (int i = 0; i < savedInventory.length; i++) {
-            savedInventory[i] = player.getInventory().getItem(i).copy();
-        }
-
-        // Limpa inventário atual
-        player.getInventory().clearContent();
-
-        // Registra no limbo
+        // Registra no limbo (SEM salvar inventário)
         limboPlayers.put(player.getUUID(), new LimboData(
-            spawnPos, spawnYaw, spawnPitch, savedInventory, 0
+            spawnPos, spawnYaw, spawnPitch, 0
         ));
 
         // Aplica efeitos visuais
@@ -55,18 +45,13 @@ public class LimboManager {
 
     /**
      * Libera um jogador do limbo.
-     * Restaura inventário e remove efeitos.
+     * Remove efeitos e libera movimento.
+     * O inventário permanece intocado.
      */
     public static void exitLimbo(ServerPlayer player) {
         LimboData data = limboPlayers.remove(player.getUUID());
         if (data == null) return;
 
-        // Restaura inventário
-        Inventory inv = player.getInventory();
-        inv.clearContent();
-        for (int i = 0; i < data.savedInventory.length; i++) {
-            inv.setItem(i, data.savedInventory[i]);
-        }
 
         // Remove efeitos
         removeLimboEffects(player);
@@ -178,19 +163,18 @@ public class LimboManager {
 
     /**
      * Dados de limbo de um jogador.
+     * Armazena apenas posição e rotação para travamento no lugar.
      */
     private static class LimboData {
         final BlockPos position;
         final float yaw;
         final float pitch;
-        final ItemStack[] savedInventory;
         int ticksInLimbo;
 
-        LimboData(BlockPos position, float yaw, float pitch, ItemStack[] savedInventory, int ticksInLimbo) {
+        LimboData(BlockPos position, float yaw, float pitch, int ticksInLimbo) {
             this.position = position;
             this.yaw = yaw;
             this.pitch = pitch;
-            this.savedInventory = savedInventory;
             this.ticksInLimbo = ticksInLimbo;
         }
     }

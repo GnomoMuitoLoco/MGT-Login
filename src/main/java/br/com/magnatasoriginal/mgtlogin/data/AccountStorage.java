@@ -1,6 +1,5 @@
 package br.com.magnatasoriginal.mgtlogin.data;
 
-import br.com.magnatasoriginal.mgtlogin.session.LoginSessionManager;
 import br.com.magnatasoriginal.mgtlogin.util.ModLogger;
 import br.com.magnatasoriginal.mgtlogin.util.GsonProvider;
 import br.com.magnatasoriginal.mgtlogin.util.PasswordUtil;
@@ -45,15 +44,11 @@ public class AccountStorage {
 
     /**
      * Registra uma nova conta.
-     * - Para premium, você pode passar passwordHash como "" (não usa senha).
-     * - Para pirata, use hash gerado por PasswordUtil.hashPassword.
-     *
      * @param player Jogador
-     * @param passwordHash Senha já com hash (ou "" para premium)
-     * @param premium true se for conta original, false se for pirata
+     * @param passwordHash Senha já com hash
      */
-    public static boolean register(ServerPlayer player, String passwordHash, boolean premium) {
-        UUID uuid = LoginSessionManager.getEffectiveUUID(player);
+    public static boolean register(ServerPlayer player, String passwordHash) {
+        UUID uuid = player.getUUID();
         if (isRegistered(uuid)) return false;
 
         AccountData data = new AccountData(
@@ -62,17 +57,17 @@ public class AccountStorage {
                 passwordHash == null ? "" : passwordHash,
                 player.getIpAddress(),
                 Instant.now().toString(),
-                premium
+                false // premium sempre false (não usamos mais essa distinção)
         );
         accounts.put(uuid, data);
         save();
-        ModLogger.info("Conta registrada: " + player.getGameProfile().getName() + " (Premium: " + premium + ")");
+        ModLogger.info("Conta registrada: " + player.getGameProfile().getName());
         return true;
     }
 
     // Atualiza senha (apenas pirata deve ter senha)
     public static void updatePassword(ServerPlayer player, String newHash) {
-        UUID uuid = LoginSessionManager.getEffectiveUUID(player);
+        UUID uuid = player.getUUID();
         AccountData data = accounts.get(uuid);
         if (data != null) {
             AccountData updated = new AccountData(
@@ -89,9 +84,9 @@ public class AccountStorage {
         }
     }
 
-    // Verifica senha (pirata)
+    // Verifica senha
     public static boolean verify(ServerPlayer player, String password) {
-        UUID uuid = LoginSessionManager.getEffectiveUUID(player);
+        UUID uuid = player.getUUID();
         AccountData data = accounts.get(uuid);
         if (data == null) return false;
         if (data.passwordHash() == null || data.passwordHash().isEmpty()) return false;
@@ -100,7 +95,7 @@ public class AccountStorage {
 
     // Auto-login somente se nick e IP forem idênticos ao último login
     public static boolean canAutoLogin(ServerPlayer player) {
-        UUID uuid = LoginSessionManager.getEffectiveUUID(player);
+        UUID uuid = player.getUUID();
         AccountData data = accounts.get(uuid);
         if (data == null) return false;
 
@@ -112,7 +107,7 @@ public class AccountStorage {
 
     // Atualiza IP, data e (opcional) nome ao autenticar com sucesso
     public static void updateLastLogin(ServerPlayer player) {
-        UUID uuid = LoginSessionManager.getEffectiveUUID(player);
+        UUID uuid = player.getUUID();
         AccountData data = accounts.get(uuid);
         if (data != null) {
             AccountData updated = new AccountData(

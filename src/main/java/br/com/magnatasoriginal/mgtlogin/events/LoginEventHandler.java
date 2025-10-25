@@ -16,6 +16,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
 
+import java.util.UUID;
+
 /**
  * Gerencia eventos de autenticação e bloqueio de ações para jogadores não autenticados.
  * Este é a fonte única de verdade para controle de sessão/autologin/limbo.
@@ -25,10 +27,7 @@ public class LoginEventHandler {
     // Comandos permitidos antes da autenticação (incluindo aliases)
     private static final String[] ALLOWED_COMMANDS = {
             "login", "logar",
-            "register", "registrar",
-            "original",
-            "pirata",
-            "authdiscord", "autenticar"
+            "register", "registrar"
     };
 
     // Quando o jogador entra no servidor
@@ -41,16 +40,6 @@ public class LoginEventHandler {
 
         // 🔹 Verifica auto-login (mesmo nick + mesmo IP)
         if (AccountStorage.canAutoLogin(player)) {
-            // Marca tipo de conta baseado no registro
-            var data = AccountStorage.getAccount(player.getUUID());
-            if (data != null) {
-                if (data.premium()) {
-                    LoginSessionManager.markAsOriginal(player);
-                } else {
-                    LoginSessionManager.markAsPirata(player, player.getUUID());
-                }
-            }
-
             LoginSessionManager.markAsAuthenticated(player);
             AccountStorage.updateLastLogin(player);
             player.sendSystemMessage(Component.literal("§aLogin automático realizado com sucesso!"));
@@ -61,24 +50,21 @@ public class LoginEventHandler {
         // Coloca no limbo
         LoginSessionManager.applyLimbo(player);
 
-        // Se o jogador ainda não escolheu ORIGINAL ou PIRATA
-        if (!LoginSessionManager.hasChosenAccountType(player)) {
-            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════���═"));
+        // Vai direto para a verificação de registro (sem perguntar sobre tipo de conta)
+        UUID playerUUID = player.getUUID();
+
+        if (AccountStorage.isRegistered(playerUUID)) {
+            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════════"));
+            player.sendSystemMessage(Component.literal("§6§lBem-vindo de volta!"));
+            player.sendSystemMessage(Component.literal(""));
+            player.sendSystemMessage(Component.literal("§eUse §f/login <senha> §epara entrar."));
+            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════════"));
+        } else {
+            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════════"));
             player.sendSystemMessage(Component.literal("§6§lBem-vindo ao servidor!"));
             player.sendSystemMessage(Component.literal(""));
-            player.sendSystemMessage(Component.literal("§eSua conta é §aORIGINAL §eou §cPIRATA§e?"));
-            player.sendSystemMessage(Component.literal("§7Use §f/original §7ou §f/pirata §7para continuar"));
-            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════���"));
-            return;
-        }
-
-        // Só chega aqui se já tiver escolhido ORIGINAL ou PIRATA
-        var effectiveUUID = LoginSessionManager.getEffectiveUUID(player);
-
-        if (AccountStorage.isRegistered(effectiveUUID)) {
-            player.sendSystemMessage(Component.literal("§eUse §f/login <senha> §epara entrar."));
-        } else {
             player.sendSystemMessage(Component.literal("§eUse §f/register <senha> <senha> §epara criar sua conta."));
+            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════════"));
         }
     }
 
@@ -123,7 +109,7 @@ public class LoginEventHandler {
                         "§cVocê só pode usar comandos de autenticação até se autenticar."
                 ));
                 player.sendSystemMessage(Component.literal(
-                        "§7Comandos permitidos: §f/login§7, §f/register§7, §f/original§7, §f/pirata"
+                        "§7Comandos permitidos: §f/login §7e §f/register"
                 ));
                 ModLogger.debug("Comando bloqueado: " + commandName);
             }
