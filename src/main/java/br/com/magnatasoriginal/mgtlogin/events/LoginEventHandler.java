@@ -42,7 +42,13 @@ public class LoginEventHandler {
         if (AccountStorage.canAutoLogin(player)) {
             LoginSessionManager.markAsAuthenticated(player);
             AccountStorage.updateLastLogin(player);
+
+            // Mensagem padronizada similar às mensagens de boas-vindas
+            player.sendSystemMessage(Component.literal("§e§l══════ §6Login automático concluído §e§l══════"));
+            player.sendSystemMessage(Component.literal(""));
             player.sendSystemMessage(Component.literal("§aLogin automático realizado com sucesso!"));
+            player.sendSystemMessage(Component.literal("§7by Magnatas"));
+
             ModLogger.info("Auto-login bem-sucedido para: " + player.getName().getString());
             return;
         }
@@ -54,17 +60,17 @@ public class LoginEventHandler {
         UUID playerUUID = player.getUUID();
 
         if (AccountStorage.isRegistered(playerUUID)) {
-            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════════"));
-            player.sendSystemMessage(Component.literal("§6§lBem-vindo de volta!"));
+            // Mensagem otimizada para evitar quebra de linha no chat
+            player.sendSystemMessage(Component.literal("§e§l══════ §6Bem-vindo de volta! §e§l══════"));
             player.sendSystemMessage(Component.literal(""));
             player.sendSystemMessage(Component.literal("§eUse §f/login <senha> §epara entrar."));
-            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════════"));
+            player.sendSystemMessage(Component.literal("§7by Magnatas"));
         } else {
-            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════════"));
-            player.sendSystemMessage(Component.literal("§6§lBem-vindo ao servidor!"));
+            // Mensagem otimizada para novos jogadores
+            player.sendSystemMessage(Component.literal("§e§l══════ §6Bem-vindo ao servidor! §e§l══════"));
             player.sendSystemMessage(Component.literal(""));
             player.sendSystemMessage(Component.literal("§eUse §f/register <senha> <senha> §epara criar sua conta."));
-            player.sendSystemMessage(Component.literal("§e§l═══════════════════════════════════"));
+            player.sendSystemMessage(Component.literal("§7by Magnatas"));
         }
     }
 
