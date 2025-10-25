@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.level.GameType;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
@@ -37,6 +38,14 @@ public class LimboManager {
             spawnPos, spawnYaw, spawnPitch, 0
         ));
 
+        // Força gamemode Adventure para impedir interações e editor de GUIs
+        try {
+            player.setGameMode(GameType.ADVENTURE);
+            player.onUpdateAbilities();
+        } catch (Exception e) {
+            ModLogger.aviso("Não foi possível setar GameMode ADVENTURE para " + player.getName().getString() + ": " + e.getMessage());
+        }
+
         // Aplica efeitos visuais
         applyLimboEffects(player);
 
@@ -52,9 +61,16 @@ public class LimboManager {
         LimboData data = limboPlayers.remove(player.getUUID());
         if (data == null) return;
 
-
         // Remove efeitos
         removeLimboEffects(player);
+
+        // Restaura gamemode para Survival após autenticação
+        try {
+            player.setGameMode(GameType.SURVIVAL);
+            player.onUpdateAbilities();
+        } catch (Exception e) {
+            ModLogger.aviso("Não foi possível setar GameMode SURVIVAL para " + player.getName().getString() + ": " + e.getMessage());
+        }
 
         ModLogger.info("Jogador saiu do limbo: " + player.getName().getString());
     }
